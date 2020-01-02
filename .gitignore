@@ -1,0 +1,7 @@
+
+*.pkl
+*.txt
+fl/
+cache/
+pipeline/data/
+transformers-master/
