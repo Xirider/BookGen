@@ -65,7 +65,8 @@ def parse_fanfiction(files):
                                 bookdata[current_chapter]["content"].append(line)
                             except:
                                 import pdb; pdb.set_trace()
-
+            bookdata[current_chapter]["content"].append("")
+            bookdata[current_chapter]["content"].append("THE END")
 
             books.append(bookdata)
                     

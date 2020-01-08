@@ -5,3 +5,5 @@ fl/
 cache/
 pipeline/data/
 transformers-master/
+*.pyc
+pipeline/__pycache__/
