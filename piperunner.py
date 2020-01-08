@@ -3,7 +3,7 @@ from pipeline.filterstories import filter_ff_stories
 from pipeline.split import split
 from pipeline.summarize import summarize_books
 from pipeline.lmprep import prepare_for_lm
-from pipeline.utils import get_tokenizer, save_datasets
+from pipeline.utils import get_tokenizer, save_datasets, split_examples
 
 
 def run():
@@ -14,7 +14,9 @@ def run():
     books = split(books, tokenizer, max_tokens = 200, max_prev_tokens = 100)
     books = summarize_books(books, max_chapter_level=10, sum_ratio=3, sum_model="bart")
     datasets = prepare_for_lm(books, tokenizer, max_seq_len=400)
-    save_datasets(datasets)
+    train_datasets, eval_datasets = split_examples(datasets, ratio=0.1)
+    save_datasets(train_datasets, "train")
+    save_datasets(eval_datasets, "eval")
 
     
     return datasets
