@@ -50,7 +50,6 @@ from transformers import (
     DistilBertForMaskedLM,
     DistilBertTokenizer,
     GPT2Config,
-    GPT2LMHeadModel,
     GPT2Tokenizer,
     OpenAIGPTConfig,
     OpenAIGPTLMHeadModel,
@@ -61,6 +60,7 @@ from transformers import (
     get_linear_schedule_with_warmup,
 )
 
+from modeling_gpt2 import GPT2LMHeadModel,
 
 try:
     from torch.utils.tensorboard import SummaryWriter
