@@ -1,6 +1,6 @@
 from joblib import Memory
 
-
+IGNORE_TOKEN = -1
 cachedir = "cache"
 memory = Memory(cachedir, verbose=10)
 
@@ -113,7 +113,7 @@ def create_single_example(schema, tokenizer, max_seq_len):
             if ignore == False:
                 labels.append(token)
             else:
-                labels.append(-100)
+                labels.append(IGNORE_TOKEN)
 
         # add text
         else:
@@ -128,7 +128,7 @@ def create_single_example(schema, tokenizer, max_seq_len):
             if ignore == False:
                 labels.extend(group)
             else:
-                labels.extend([-100]* len(group))
+                labels.extend([IGNORE_TOKEN]* len(group))
             
             
     assert len(input_ids) == len(token_type_ids) == len(labels) 
@@ -136,7 +136,7 @@ def create_single_example(schema, tokenizer, max_seq_len):
     # pad and slice to max_seq_len
     while len(input_ids) < max_seq_len:
                     input_ids.append(tokenizer.pad_token_id)
-                    labels.append(-100)
+                    labels.append(IGNORE_TOKEN)
                     token_type_ids.append(tokenizer.pad_token_id)
     if len(input_ids) > max_seq_len:
         input_ids = input_ids[:max_seq_len]
