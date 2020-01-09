@@ -24,9 +24,9 @@ import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 
-from .configuration_gpt2 import GPT2Config
-from .file_utils import add_start_docstrings
-from .modeling_utils import Conv1D, PreTrainedModel, SequenceSummary, prune_conv1d_layer
+from transformers.configuration_gpt2 import GPT2Config
+from transformers.file_utils import add_start_docstrings
+from transformers.modeling_utils import Conv1D, PreTrainedModel, SequenceSummary, prune_conv1d_layer
 
 
 logger = logging.getLogger(__name__)
