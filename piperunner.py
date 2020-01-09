@@ -9,16 +9,16 @@ from pipeline.utils import get_tokenizer, save_datasets, split_examples
 def run():
     books = get_ff_files("allbooks")
     books = filter_ff_stories(books, max_rating="M", min_words= 400, max_words= 10000, max_chapters= 3, min_chapters= 1, max_books=10)
-    import pdb; pdb.set_trace()
+
     tokenizer = get_tokenizer("gpt2-large")
     books = split(books, tokenizer, max_tokens = 200, max_prev_tokens = 100)
-    import pdb; pdb.set_trace()
+
     books = summarize_books(books, max_chapter_level=10, sum_ratio=3, sum_model="bart")
-    import pdb; pdb.set_trace()
+
     datasets = prepare_for_lm(books, tokenizer, max_seq_len=400)
-    import pdb; pdb.set_trace()
+
     train_datasets, eval_datasets = split_examples(datasets, ratio=0.1)
-    import pdb; pdb.set_trace()
+
     save_datasets(train_datasets, "train")
     save_datasets(eval_datasets, "eval")
 

@@ -18,3 +18,4 @@ pipeline/__pycache__/utils.cpython-36.pyc
 model_cache/
 __pycache__/
 data/output_dir/
+pipeline/__pycache__/getstories.cpython-36.pyc
