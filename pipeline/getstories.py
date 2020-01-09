@@ -17,7 +17,7 @@ memory = Memory(cachedir, verbose=10)
 
 
 def get_text_paths(datadir):
-
+    import pdb; pdb.set_trace()
     files = []
     # r=root, d=directories, f = files
     datadir = os.getcwd() + "\pipeline\data\\" + datadir
