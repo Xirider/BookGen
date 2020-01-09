@@ -58,10 +58,9 @@ from transformers import (
     RobertaForMaskedLM,
     RobertaTokenizer,
     get_linear_schedule_with_warmup,
-    GPT2LMHeadModel
 )
 
-# from modeling_gpt2 import GPT2LMHeadModel
+from modeling_gpt2 import GPT2LMHeadModel
 
 try:
     from torch.utils.tensorboard import SummaryWriter

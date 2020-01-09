@@ -1,6 +1,6 @@
 from joblib import Memory
 
-IGNORE_TOKEN = -1
+IGNORE_TOKEN = -100
 cachedir = "cache"
 memory = Memory(cachedir, verbose=10)
 
