@@ -17,3 +17,4 @@ pipeline/__pycache__/utils.cpython-36.pyc
 *.pyc
 model_cache/
 __pycache__/
+data/output_dir/
