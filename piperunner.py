@@ -11,11 +11,11 @@ def run():
     books = filter_ff_stories(books, max_rating="M", min_words= 400, max_words= 10000, max_chapters= 3, min_chapters= 1, max_books=10)
 
     tokenizer = get_tokenizer("gpt2-large")
-    books = split(books, tokenizer, max_tokens = 200, max_prev_tokens = 100)
+    books = split(books, tokenizer, max_tokens = 180, max_prev_tokens = 100)
 
     books = summarize_books(books, max_chapter_level=10, sum_ratio=3, sum_model="bart")
 
-    datasets = prepare_for_lm(books, tokenizer, max_seq_len=400)
+    datasets = prepare_for_lm(books, tokenizer, max_seq_len=350)
 
     train_datasets, eval_datasets = split_examples(datasets, ratio=0.1)
 
