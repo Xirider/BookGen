@@ -8,7 +8,7 @@ from pipeline.utils import get_tokenizer, save_datasets, split_examples
 
 def run():
     books = get_ff_files("allbooks")
-    books = filter_ff_stories(books, max_rating="M", min_words= 400, max_words= 10000, max_chapters= 3, min_chapters= 1, max_books=10)
+    books = filter_ff_stories(books, max_rating="M", min_words= 2000, max_words= 200000, max_chapters= 30, min_chapters= 0, max_books=10)
 
     tokenizer = get_tokenizer("gpt2-large")
     books = split(books, tokenizer, max_tokens = 150, max_prev_tokens = 150)
@@ -17,7 +17,7 @@ def run():
 
     datasets = prepare_for_lm(books, tokenizer, max_seq_len=400)
 
-    train_datasets, eval_datasets = split_examples(datasets, ratio=0.1)
+    train_datasets, eval_datasets = split_examples(datasets, ratio=0.05)
 
     save_datasets(train_datasets, "train")
     save_datasets(eval_datasets, "eval")
