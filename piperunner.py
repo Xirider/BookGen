@@ -11,7 +11,7 @@ def run():
     books = filter_ff_stories(books, max_rating="M", min_words= 400, max_words= 10000, max_chapters= 3, min_chapters= 1, max_books=10)
 
     tokenizer = get_tokenizer("gpt2-large")
-    books = split(books, tokenizer, max_tokens = 180, max_prev_tokens = 100)
+    books = split(books, tokenizer, max_tokens = 150, max_prev_tokens = 150)
 
     books = summarize_books(books, max_chapter_level=10, sum_ratio=3, sum_model="bart")
 
