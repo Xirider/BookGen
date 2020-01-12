@@ -26,8 +26,8 @@ class BartModel:
             with torch.no_grad():
                 result_batch = self.bart.sample(batch, beam=4, lenpen=2.0, max_len_b=140, min_len=55, no_repeat_ngram_size=3)
             summarized.extend(result_batch)
-            print_counter += 1
-            if print_counter < 1000:
+            self.print_counter += 1
+            if self.print_counter < 1000:
                 print(f"bart batch finished {i} of {text_list_len}")
         return summarized
 
