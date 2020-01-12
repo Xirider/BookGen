@@ -10,7 +10,7 @@ def run():
 
     paths = get_text_paths("allbooks", shuffle = True)
     
-    shard_count = 1
+    shard_count = 150
 
     for i in range(shard_count):
         
