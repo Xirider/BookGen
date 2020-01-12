@@ -3,14 +3,14 @@ from pipeline.filterstories import filter_ff_stories
 from pipeline.split import split
 from pipeline.summarize import summarize_books
 from pipeline.lmprep import prepare_for_lm
-from pipeline.utils import get_tokenizer, save_datasets, split_examples, get_shard
+from pipeline.utils import get_tokenizer, save_datasets, split_examples, get_shard, save_book_shard
 
 
 def run():
 
     paths = get_text_paths("allbooks", shuffle = True)
     
-    shard_count = 150
+    shard_count = 1
 
     for i in range(shard_count):
         
@@ -23,6 +23,9 @@ def run():
         books = split(books, tokenizer, max_tokens = 150, max_prev_tokens = 150)
 
         books = summarize_books(books, max_chapter_level=10, sum_ratio=3, sum_model="bart")
+
+        save_book_shard(books, i)
+
 
         datasets = prepare_for_lm(books, tokenizer, max_seq_len=400)
 

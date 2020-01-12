@@ -22,7 +22,9 @@ class BartModel:
         for i in range(0,text_list_len, batch_size):
 
             batch = text_list[i: i+ batch_size]
-            result_batch = self.bart.sample(batch, beam=4, lenpen=2.0, max_len_b=140, min_len=55, no_repeat_ngram_size=3)
+            with torch.no_grad():
+
+                result_batch = self.bart.sample(batch, beam=4, lenpen=2.0, max_len_b=140, min_len=55, no_repeat_ngram_size=3)
             summarized.extend(result_batch)
             # print(f"bart batch finished {i} of {text_list_len}")
         return summarized

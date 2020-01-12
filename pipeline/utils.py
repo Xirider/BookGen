@@ -3,6 +3,7 @@ import pickle
 import json
 from transformers import GPT2Tokenizer
 import random
+from pathlib import Path
 
 def get_tokenizer(tokenizer_name = "gpt2-large"):
     tokenizer = GPT2Tokenizer.from_pretrained(tokenizer_name)
@@ -16,7 +17,9 @@ def get_tokenizer(tokenizer_name = "gpt2-large"):
 
 
 def save_datasets(datasets, name="datasets"):
-    name = "pipeline/data/" + name + ".json"
+    start = Path("pipeline/data/")
+    name = name + ".json"
+    name = start / name
     with open(name, "w") as fp:
         json.dump(datasets, fp)
 
@@ -64,4 +67,12 @@ def get_shard(full_list, shard_index, total_shards):
 #             pickle.dump(obj, open(pathname), protocol=pickle.HIGHEST_PROTOCOL)
         
 
-        
+
+def save_book_shard(books, shard_index)
+    start = Path("pipeline/data/bookcache")
+    if not os.path.exists(start):
+        os.makedirs(start)
+    name = f"bookcache_{shard_index}.json"
+    name = start / name
+    with open(name, "w") as fp:
+        json.dump(books, fp)
