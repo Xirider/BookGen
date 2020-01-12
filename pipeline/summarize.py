@@ -40,8 +40,7 @@ def summarize_books(books, max_chapter_level,  sum_ratio, sum_model, sum_ratio_h
 
     booknum = len(books)
     for bookid in range(len(books)):
-        if bookid % 10 == 0:
-            print(f"summarizing book {bookid} now of a total of {booknum} books")
+        print(f"summarizing book {bookid} now of a total of {booknum} books")
         high_level_chapters = []
 
 
