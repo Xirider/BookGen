@@ -39,7 +39,7 @@ def get_text_paths(datadir, shuffle = False):
 
     return files
 
-@memory.cache
+# @memory.cache
 def parse_fanfiction(files):
     books = []
     # files = files[0:2]

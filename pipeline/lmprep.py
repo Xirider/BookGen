@@ -4,7 +4,7 @@ IGNORE_TOKEN = -100
 cachedir = "cache"
 memory = Memory(cachedir, verbose=10)
 
-@memory.cache
+# @memory.cache
 def prepare_for_lm(books, tokenizer, max_seq_len):
 
     # each dataset need a list of tokens, a list of segment ids, a list of labels with ignored -100 indixes

@@ -5,7 +5,7 @@ from joblib import Memory
 cachedir = "cache"
 memory = Memory(cachedir, verbose=10)
 
-@memory.cache
+# @memory.cache
 def split(books, tokenizer, max_tokens, max_prev_tokens):
 
     

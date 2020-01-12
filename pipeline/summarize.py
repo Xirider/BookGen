@@ -28,7 +28,7 @@ class BartModel:
         return summarized
 
 
-@memory.cache
+# @memory.cache
 def summarize_books(books, max_chapter_level,  sum_ratio, sum_model, sum_ratio_high = 10000, treat_text_equally=False):
 
     if sum_model == "bart":

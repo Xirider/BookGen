@@ -5,7 +5,7 @@ memory = Memory(cachedir, verbose=10)
 
 
 
-@memory.cache
+# @memory.cache
 def filter_ff_stories(books, max_rating, min_words, max_words, min_chapters, max_chapters, max_books):
     print("filtering ff stories")
     ratings = {"K":1, "K+":2, "T":3, "M":4, "MA":5 }
