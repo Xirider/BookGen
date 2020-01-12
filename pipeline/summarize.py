@@ -15,6 +15,7 @@ class BartModel:
         if gpu:
             self.bart.cuda()
         self.bart.eval()
+        self.print_counter = 0
     def summarize_text(self, text_list, batch_size=16):
         text_list = ["".join([" ", text]) for text in text_list]
         text_list_len = len(text_list)
@@ -25,7 +26,9 @@ class BartModel:
             with torch.no_grad():
                 result_batch = self.bart.sample(batch, beam=4, lenpen=2.0, max_len_b=140, min_len=55, no_repeat_ngram_size=3)
             summarized.extend(result_batch)
-            print(f"bart batch finished {i} of {text_list_len}")
+            print_counter += 1
+            if print_counter < 1000:
+                print(f"bart batch finished {i} of {text_list_len}")
         return summarized
 
 
