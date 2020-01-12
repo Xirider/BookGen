@@ -15,7 +15,7 @@ class BartModel:
         if gpu:
             self.bart.cuda()
         self.bart.eval()
-    def summarize_text(self, text_list, batch_size=16):
+    def summarize_text(self, text_list, batch_size=8):
         text_list = ["".join([" ", text]) for text in text_list]
         text_list_len = len(text_list)
         summarized = []

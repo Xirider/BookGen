@@ -17,7 +17,7 @@ cachedir = "cache"
 memory = Memory(cachedir, verbose=10)
 
 
-
+@memory.cache
 def get_text_paths(datadir, shuffle = False):
 
     files = []
