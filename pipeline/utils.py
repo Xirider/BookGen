@@ -68,7 +68,7 @@ def get_shard(full_list, shard_index, total_shards):
         
 
 
-def save_book_shard(books, shard_index)
+def save_book_shard(books, shard_index):
     start = Path("pipeline/data/bookcache")
     if not os.path.exists(start):
         os.makedirs(start)
