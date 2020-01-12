@@ -15,7 +15,7 @@ class BartModel:
         if gpu:
             self.bart.cuda()
         self.bart.eval()
-    def summarize_text(self, text_list, batch_size=8):
+    def summarize_text(self, text_list, batch_size=16):
         text_list = ["".join([" ", text]) for text in text_list]
         text_list_len = len(text_list)
         summarized = []
@@ -23,10 +23,9 @@ class BartModel:
 
             batch = text_list[i: i+ batch_size]
             with torch.no_grad():
-
                 result_batch = self.bart.sample(batch, beam=4, lenpen=2.0, max_len_b=140, min_len=55, no_repeat_ngram_size=3)
             summarized.extend(result_batch)
-            # print(f"bart batch finished {i} of {text_list_len}")
+            print(f"bart batch finished {i} of {text_list_len}")
         return summarized
 
 
@@ -38,7 +37,7 @@ def summarize_books(books, max_chapter_level,  sum_ratio, sum_model, sum_ratio_h
 
     booknum = len(books)
     for bookid in range(len(books)):
-        if bookid % 100 == 0:
+        if bookid % 10 == 0:
             print(f"summarizing book {bookid} now of a total of {booknum} books")
         high_level_chapters = []
 
