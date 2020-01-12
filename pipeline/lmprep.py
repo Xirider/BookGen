@@ -15,6 +15,7 @@ def prepare_for_lm(books, tokenizer, max_seq_len):
     # text_0
     out_dict = {}
     text_0 = []
+    print("prepping level 0 now")
     for book in books:
         for chapterid in range(int(book["Chapters"])):
             chapter = book[chapterid]
@@ -26,6 +27,7 @@ def prepare_for_lm(books, tokenizer, max_seq_len):
 
     # sum_1 to sum_10
     for level in range(1, 11):
+        print(f"prepping level {level} now")
         gen_level = f"unjoined_before_{level+1}"
         gen_token = f"<sum{level}>"
         context_level = f"sum{level+1}"
@@ -56,7 +58,7 @@ def prepare_for_lm(books, tokenizer, max_seq_len):
 
     # chapters_11
     chapters_11 = []
-
+    print("prepping high level chapters now")
     for book in books:
         if "sum_chapters" in book:
             before_sum = book["before_sum_chapters"]

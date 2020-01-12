@@ -10,6 +10,8 @@ def split(books, tokenizer, max_tokens, max_prev_tokens):
 
     
     for bookid, book in enumerate(books):
+        if bookid % 1000 == 0:
+            print(f"splitting book {bookid} now")
 
         chapter_count = int(books[bookid]["Chapters"].replace(",", ""))
 

@@ -39,6 +39,8 @@ def parse_fanfiction(files):
     books = []
     # files = files[0:2]
     for fileid, file in enumerate(files):
+        if fileid % 1000 == 0:
+            print(f"parse book {fileid} now")
         bookdata = {"book_id": fileid }
         current_chapter = -1
         with open(file, "r", encoding="utf-8") as openedfile:

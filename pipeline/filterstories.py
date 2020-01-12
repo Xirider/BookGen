@@ -12,6 +12,8 @@ def filter_ff_stories(books, max_rating, min_words, max_words, min_chapters, max
     rating_number = ratings[max_rating]
     delete_ids = []
     for bookid, book in enumerate(books):
+        if bookid % 1000 == 0:
+            print(f"filtering book {bookid} now")
         removal = False
 
         if book["Language"] != "English":
