@@ -32,6 +32,7 @@ def run():
 
 
 
+    tokenizer = get_tokenizer("gpt2-medium")
 
     for i in range(shard_count):
 
@@ -43,7 +44,7 @@ def run():
         books = parse_fanfiction(path_shard)
         books = filter_ff_stories(books, max_rating="M", min_words= 2000, max_words= 50000, max_chapters= 20, min_chapters= 0, max_books=10000000)
 
-        tokenizer = get_tokenizer("gpt2-medium")
+        
         books = split(books, tokenizer, max_tokens = 150, max_prev_tokens = 150)
 
         books = summarize_books(books, max_chapter_level=10, sum_ratio=3, sum_model="bart")
