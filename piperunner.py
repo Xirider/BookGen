@@ -1,4 +1,4 @@
-from pipeline.getstories import get_ff_files
+from pipeline.getstories import get_text_paths, parse_fanfiction
 from pipeline.filterstories import filter_ff_stories
 from pipeline.split import split
 from pipeline.summarize import summarize_books
