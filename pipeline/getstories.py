@@ -11,13 +11,14 @@
 import os
 from joblib import Memory
 from pathlib import Path
+import random
 
 cachedir = "cache"
 memory = Memory(cachedir, verbose=10)
 
 
 
-def get_text_paths(datadir):
+def get_text_paths(datadir, shuffle = False):
 
     files = []
     # r=root, d=directories, f = files
@@ -32,6 +33,10 @@ def get_text_paths(datadir):
                 files.append(os.path.join(r, fl))
     
     
+    if shuffle:
+        random.shuffle(files)
+        print("shuffled files")
+
     return files
 
 @memory.cache
@@ -88,12 +93,6 @@ def parse_fanfiction(files):
 #     tt = text_file.read()
 #     print(tt)
 
-def get_ff_files(datadir):
-    print("getting file paths")
-    files = get_text_paths(datadir)
-    print("parsing fanfiction")
-    fflist = parse_fanfiction(files)
-    return fflist
 
 
 

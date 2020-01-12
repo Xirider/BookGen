@@ -47,6 +47,13 @@ def split_examples(datasets, ratio):
     return train_datasets, eval_datasets
             
 
+def get_shard(full_list, shard_index, total_shards):
+
+    total_len = len(full_list)
+
+    shard_size = total_len // total_shards
+
+    return full_list[shard_index * shard_size:(shard_index + 1)*shard_size]
 
 # def cache_object(obj, cache_name, no_cache_flag=False, reset_cache=False):
 #     if not no_cache_flag:
