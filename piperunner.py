@@ -8,16 +8,40 @@ from pipeline.utils import get_tokenizer, save_datasets, split_examples, get_sha
 
 def run():
 
+    parser = argparse.ArgumentParser()
+
+    # Required parameters
+    parser.add_argument(
+        "--shard_start", default=0, type=int, required=False
+    )
+    # Required parameters
+    parser.add_argument(
+        "--shard_end", default=-1, type=int, required=False
+    )
+
+    parser.add_argument(
+        "--shard_count", default=2000, type=int, required=False
+    )
+    args = parser.parse_args()
+
+    if args.shard_end == -1:
+        args.shard_end = args.shard_count 
+
     paths = get_text_paths("allbooks", shuffle = True)
-    
-    shard_count = 150
+    shard_count = args.shard_count
+
+
+
 
     for i in range(shard_count):
+
+        if args.shard_start > i or args.shard_end <= i:
+            continue
         
         print(f"starting with shard {i}")
         path_shard = get_shard(paths, i, shard_count)
         books = parse_fanfiction(path_shard)
-        books = filter_ff_stories(books, max_rating="M", min_words= 2000, max_words= 200000, max_chapters= 30, min_chapters= 0, max_books=10000000)
+        books = filter_ff_stories(books, max_rating="M", min_words= 2000, max_words= 50000, max_chapters= 20, min_chapters= 0, max_books=10000000)
 
         tokenizer = get_tokenizer("gpt2-medium")
         books = split(books, tokenizer, max_tokens = 150, max_prev_tokens = 150)
