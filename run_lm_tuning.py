@@ -460,12 +460,6 @@ def evaluate(args, model, tokenizer, bleu, rouge, prefix="", whole_book=False):
 
     result = {"perplexity": perplexity, "ROUGE-L" :rouge_score_total, "BLEU-4": bleu_score_total}
 
-    output_eval_file = os.path.join(eval_output_dir, prefix, "eval_results.txt")
-    with open(output_eval_file, "w") as writer:
-        logger.info("***** Eval results {} *****".format(prefix))
-        for key in sorted(result.keys()):
-            logger.info("  %s = %s", key, str(result[key]))
-            writer.write("%s = %s\n" % (key, str(result[key])))
 
     # doing whole book scoring
 
@@ -494,7 +488,7 @@ def evaluate(args, model, tokenizer, bleu, rouge, prefix="", whole_book=False):
                             active_level = 3
                 level_average += active_level
             mid_start_level = level_average // int(book["Chapters"])
-            import pdb; pdb.set_trace()
+
             book_text = " ".join(book_text)
 
             gen_book, _ = generate_book(model, tokenizer, high_level_prompt, max_chapters, start_level, device=args.device, mid_start_level=mid_start_level, max_input_len = 300, max_seq_len=400, sum_factor=3, prev_tokens_len=150)
@@ -504,12 +498,19 @@ def evaluate(args, model, tokenizer, bleu, rouge, prefix="", whole_book=False):
             bleu_score_book, rouge_score_book = compare_text(gen_book, book_text, bleu, rouge)
             print(bleu_score_book)
             print(rouge_score_book)
+            result["bleu_score_book"] = bleu_score_book
+            result["rouge_score_book"] = rouge_score_book
             
 
 
 
             break
-
+    output_eval_file = os.path.join(eval_output_dir, prefix, "eval_results.txt")
+    with open(output_eval_file, "w") as writer:
+        logger.info("***** Eval results {} *****".format(prefix))
+        for key in sorted(result.keys()):
+            logger.info("  %s = %s", key, str(result[key]))
+            writer.write("%s = %s\n" % (key, str(result[key])))
 
     return result
 
