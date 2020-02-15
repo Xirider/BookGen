@@ -17,6 +17,7 @@ def generate_text(model, tokenizer,  inputs, labels,  token_type_ids,  max_lengt
         top_p=top_p,
         repetition_penalty=repetition_penalty,
         token_type_ids = type_ids,
+        do_sample=True
     )
 
     text_batch = ids2text(tokenizer, output_sequences, start_token, stop_token)
@@ -31,6 +32,7 @@ def generation_wrap(model,input_ids, token_type_ids, max_seq_len):
     top_p=0.9,
     repetition_penalty=1.2,
     token_type_ids = token_type_ids,
+    do_sample = True
     )
     return output_sequences
 
