@@ -214,8 +214,6 @@ def main():
     encoded_prompt = tokenizer.encode(prompt_text, add_special_tokens=False, return_tensors="pt")
     encoded_prompt = encoded_prompt.to(args.device)
 
-
-
     output_sequences = model.generate(
         input_ids=encoded_prompt,
         max_length=args.length,

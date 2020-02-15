@@ -29,6 +29,7 @@ import random
 import re
 import shutil
 import json
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -36,6 +37,10 @@ from torch.utils.data import DataLoader, Dataset, RandomSampler, SequentialSampl
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 from pipeline.utils import get_tokenizer
+from book_generator import generate_text, ids2text, create_prompt, compare_text, generate_book
+
+from sumeval.metrics.rouge import RougeCalculator
+from sumeval.metrics.bleu import BLEUCalculator
 
 from transformers import (
     WEIGHTS_NAME,
@@ -82,19 +87,42 @@ MODEL_CLASSES = {
 
 
 class TextDataset(Dataset):
-    def __init__(self, tokenizer, args, file_path, block_size=512):
+    def __init__(self, tokenizer, args, file_path, block_size, epoche, evaluate, only_high_level):
 
         
         
         logger.info("Creating features from dataset file at %s", file_path)
-
+        original_path = file_path
         self.examples = []
+        if not evaluate:
+            file_path = original_path + str(epoche)
+        file_path = file_path + ".json"
+        file_path = Path(file_path)
         with open(file_path) as json_file:
             datasets = json.load(json_file)
-        for level in args.datasets:
-            self.examples.extend(datasets[level])
+        
+        if not only_high_level:
+            if not evaluate:
+                for k in datasets:
+                    print(f"dataset: {k} - {len(datasets[k])} examples")
+                for level in args.datasets:
+                    self.examples.extend(datasets[level])
+                datasets = None
+                random.shuffle(self.examples)
+            else:
+                self.examples.extend(datasets["text_0"])
+                print("only using text_0 for evaluation")
+        else:
 
-        random.shuffle(self.examples)
+            print("creating only high level examples for whole book generation")
+            self.examples.extend(datasets["chapters_11"])
+            high_path = original_path + "_high_books"+ ".json"
+            high_path = Path(high_path)
+            with open(high_path) as json_file:
+                high_books = json.load(json_file)
+            self.books_high = high_books
+
+        
             
         
 
@@ -105,12 +133,16 @@ class TextDataset(Dataset):
         return torch.tensor(self.examples[item][0]), torch.tensor(self.examples[item][1]), torch.tensor(self.examples[item][2])
 
 
-def load_and_cache_examples(args, tokenizer, evaluate=False):
+def load_and_cache_examples(args, tokenizer,epoche=None, evaluate=False, only_high_level=False):
     dataset = TextDataset(
         tokenizer,
         args,
         file_path=args.eval_data_file if evaluate else args.train_data_file,
         block_size=args.block_size,
+                epoche=epoche,
+        evaluate=evaluate,
+        only_high_level=only_high_level
+
     )
     return dataset
 
@@ -177,12 +209,15 @@ def mask_tokens(inputs, tokenizer, args):
     return inputs, labels
 
 
-def train(args, train_dataset, model, tokenizer):
+def train(args,  model, tokenizer, blue, rouge):
     """ Train the model """
     if args.local_rank in [-1, 0]:
         tb_writer = SummaryWriter()
 
+    train_shard_count = args.shard_count - 1
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
+
+    train_dataset = load_and_cache_examples(args, tokenizer,epoche=0, evaluate=False )
     train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
 
@@ -192,6 +227,9 @@ def train(args, train_dataset, model, tokenizer):
     else:
         t_total = len(train_dataloader) // args.gradient_accumulation_steps * args.num_train_epochs
 
+    t_total = t_total * train_shard_count
+
+    
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ["bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = [
@@ -267,10 +305,18 @@ def train(args, train_dataset, model, tokenizer):
 
     model.zero_grad()
     train_iterator = trange(
-        epochs_trained, int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0]
+        epochs_trained, int(args.num_train_epochs) * train_shard_count, desc="Epoch", disable=args.local_rank not in [-1, 0]
     )
     set_seed(args)  # Added here for reproducibility
-    for _ in train_iterator:
+    for cur_epoch in train_iterator:
+        # load dataset with epoch % train_shard count 
+        if cur_epoch != 0:
+                epoche = cur_epoch % train_shard_count
+                train_dataset = load_and_cache_examples(args, tokenizer, evaluate=False, epoche=epoche )
+                train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
+                train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
+
+
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
 
@@ -316,7 +362,7 @@ def train(args, train_dataset, model, tokenizer):
                     if (
                         args.local_rank == -1 and args.evaluate_during_training
                     ):  # Only evaluate when single GPU otherwise metrics may not average well
-                        results = evaluate(args, model, tokenizer)
+                        results = evaluate(args, model, tokenizer, bleu, rouge)
                         for key, value in results.items():
                             tb_writer.add_scalar("eval_{}".format(key), value, global_step)
                     tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
@@ -357,7 +403,7 @@ def train(args, train_dataset, model, tokenizer):
     return global_step, tr_loss / global_step
 
 
-def evaluate(args, model, tokenizer, prefix=""):
+def evaluate(args, model, tokenizer, bleu, rouge, prefix="", whole_book=False):
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_output_dir = args.output_dir
 
@@ -382,7 +428,8 @@ def evaluate(args, model, tokenizer, prefix=""):
     eval_loss = 0.0
     nb_eval_steps = 0
     model.eval()
-
+    bleu_score_total = 0
+    rouge_score_total = 0
     for batch in tqdm(eval_dataloader, desc="Evaluating"):
         inputs, token_type_ids, labels = batch
 
@@ -394,12 +441,24 @@ def evaluate(args, model, tokenizer, prefix=""):
             outputs = model(inputs, token_type_ids= token_type_ids,labels=labels)
             lm_loss = outputs[0]
             eval_loss += lm_loss.mean().item()
+
+            generated = generate_text(model, tokenizer,  inputs, labels,token_type_ids,   max_length=args.block_size,
+                        temperature=0.7, top_k=0, top_p=0.9, repetition_penalty=1.2, start_token="<genstart>", stop_token="<pad>")[0]
+            
+            reference = ids2text(tokenizer, labels, start_token=None, stop_token=None, is_label=True, ignore_id = -100)[0]
+
+            bleu_score, rouge_score = compare_text(generated, reference, bleu, rouge)
+            bleu_score_total += bleu_score
+            rouge_score_total += rouge_score
+
         nb_eval_steps += 1
 
     eval_loss = eval_loss / nb_eval_steps
-    perplexity = torch.exp(torch.tensor(eval_loss))
+    perplexity = torch.exp(torch.tensor(eval_loss)).item()
+    bleu_score_total = bleu_score_total / nb_eval_steps
+    rouge_score_total = rouge_score_total / nb_eval_steps
 
-    result = {"perplexity": perplexity}
+    result = {"perplexity": perplexity, "ROUGE-L" :rouge_score_total, "BLEU-4": bleu_score_total}
 
     output_eval_file = os.path.join(eval_output_dir, prefix, "eval_results.txt")
     with open(output_eval_file, "w") as writer:
@@ -407,6 +466,50 @@ def evaluate(args, model, tokenizer, prefix=""):
         for key in sorted(result.keys()):
             logger.info("  %s = %s", key, str(result[key]))
             writer.write("%s = %s\n" % (key, str(result[key])))
+
+    # doing whole book scoring
+
+    whole_book_eval = load_and_cache_examples(args, tokenizer, evaluate=True, only_high_level=True)
+
+    print("creating whole book for eval")
+    active_books = whole_book_eval.books_high
+    for book in active_books:
+        if "sum_chapters" in book:
+            high_level_prompt = book["sum_chapters"][0]
+            print(high_level_prompt)
+            print("as input text")
+            max_chapters = 15
+            start_level = 11
+
+            book_text = []
+            level_average = 0
+            for i in range(int(book["Chapters"])):
+                book_text.extend(book[f"{i}"]["content"])
+                active_level = 1
+                for key in book[f"{i}"]:
+                    if key[0:3] == "sum":
+                        try:
+                            active_level = int(key[3:])
+                        except:
+                            active_level = 3
+                level_average += active_level
+            mid_start_level = level_average // int(book["Chapters"])
+            import pdb; pdb.set_trace()
+            book_text = " ".join(book_text)
+
+            gen_book, _ = generate_book(model, tokenizer, high_level_prompt, max_chapters, start_level, device=args.device, mid_start_level=mid_start_level, max_input_len = 300, max_seq_len=400, sum_factor=3, prev_tokens_len=150)
+            print("created book")
+            gen_book = " ".join(gen_book)
+
+            bleu_score_book, rouge_score_book = compare_text(gen_book, book_text, bleu, rouge)
+            print(bleu_score_book)
+            print(rouge_score_book)
+            
+
+
+
+            break
+
 
     return result
 
@@ -474,6 +577,11 @@ def main():
         help="Optional input sequence length after tokenization."
         "The training dataset will be truncated in block of this size for training."
         "Default to the model max input length for single sentence inputs (take into account special tokens).",
+    )
+    parser.add_argument(
+        "--shard_count",
+        type=int,
+        help="number of shards including eval set"
     )
     parser.add_argument("--do_train", action="store_true", help="Whether to run training.")
     parser.add_argument("--do_eval", action="store_true", help="Whether to run eval on the dev set.")
@@ -644,6 +752,10 @@ def main():
     if args.local_rank == 0:
         torch.distributed.barrier()  # End of barrier to make sure only the first process in distributed training download model & vocab
 
+    rouge = RougeCalculator(stopwords=True, lang="en")
+    bleu = BLEUCalculator()
+
+
     logger.info("Training/evaluation parameters %s", args)
 
     # Training
@@ -651,12 +763,12 @@ def main():
         if args.local_rank not in [-1, 0]:
             torch.distributed.barrier()  # Barrier to make sure only the first process in distributed training process the dataset, and the others will use the cache
 
-        train_dataset = load_and_cache_examples(args, tokenizer, evaluate=False)
+        
 
         if args.local_rank == 0:
             torch.distributed.barrier()
 
-        global_step, tr_loss = train(args, train_dataset, model, tokenizer)
+        global_step, tr_loss = train(args, model, tokenizer, bleu, rouge)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
     # Saving best-practices: if you use save_pretrained for the model and tokenizer, you can reload them using from_pretrained()
@@ -698,7 +810,7 @@ def main():
 
             model = model_class.from_pretrained(checkpoint)
             model.to(args.device)
-            result = evaluate(args, model, tokenizer, prefix=prefix)
+            result = evaluate(args, model, tokenizer, bleu, rouge, prefix=prefix, whole_book =True)
             result = dict((k + "_{}".format(global_step), v) for k, v in result.items())
             results.update(result)
 

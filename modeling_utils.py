@@ -24,7 +24,7 @@ from torch import nn
 from torch.nn import CrossEntropyLoss
 from torch.nn import functional as F
 
-from configuration_utils import PretrainedConfig
+from transformers.configuration_utils import PretrainedConfig
 from transformers.file_utils import (
     DUMMY_INPUTS,
     TF2_WEIGHTS_NAME,
@@ -47,13 +47,26 @@ except ImportError:
         """
 
         def __init__(self, *args, **kwargs):
-            super(Identity, self).__init__()
+            super().__init__()
 
         def forward(self, input):
             return input
 
 
-class PreTrainedModel(nn.Module):
+class ModuleUtilsMixin:
+    """
+    A few utilities for torch.nn.Modules, to be used as a mixin.
+    """
+
+    def num_parameters(self, only_trainable: bool = False) -> int:
+        """
+        Get number of (optionally, trainable) parameters in the module.
+        """
+        params = filter(lambda x: x.requires_grad, self.parameters()) if only_trainable else self.parameters()
+        return sum(p.numel() for p in params)
+
+
+class PreTrainedModel(nn.Module, ModuleUtilsMixin):
     r""" Base class for all models.
 
         :class:`~transformers.PreTrainedModel` takes care of storing the configuration of the models and handles methods for loading/downloading/saving models
@@ -84,8 +97,16 @@ class PreTrainedModel(nn.Module):
         return {"input_ids": torch.tensor(DUMMY_INPUTS)}
 
     def __init__(self, config, *inputs, **kwargs):
-        super(PreTrainedModel, self).__init__()
-
+        super().__init__()
+        if not isinstance(config, PretrainedConfig):
+            raise ValueError(
+                "Parameter config in `{}(config)` should be an instance of class `PretrainedConfig`. "
+                "To create a model from a pretrained model use "
+                "`model = {}.from_pretrained(PRETRAINED_MODEL_NAME)`".format(
+                    self.__class__.__name__, self.__class__.__name__
+                )
+            )
+        # Save config in model
         self.config = config
 
     @property
@@ -558,6 +579,7 @@ class PreTrainedModel(nn.Module):
         eos_token_ids=None,
         length_penalty=None,
         num_return_sequences=None,
+        token_type_ids= None
     ):
         r""" Generates sequences for models with a LM head. The method currently supports greedy or penalized greedy decoding, sampling with top-k or nucleus sampling
         and beam-search.
@@ -734,6 +756,7 @@ class PreTrainedModel(nn.Module):
                 pad_token_id,
                 eos_token_ids,
                 effective_batch_size,
+                token_type_ids,
             )
 
         if num_return_sequences != 1:
@@ -753,6 +776,7 @@ class PreTrainedModel(nn.Module):
         pad_token_id,
         eos_token_ids,
         batch_size,
+        token_type_ids,
     ):
         """ Generate sequences for each example without beam search (num_beams == 1).
             All returned sequence are generated independantly.
@@ -764,7 +788,12 @@ class PreTrainedModel(nn.Module):
 
         while cur_len < max_length:
             model_inputs = self.prepare_inputs_for_generation(input_ids, past=past)
-            outputs = self(**model_inputs)
+
+            outputs = self(**model_inputs,  token_type_ids= token_type_ids)
+            
+            last_type = token_type_ids[0][-1]
+
+            token_type_ids = torch.cat(( token_type_ids ,  token_type_ids.new_full((model_inputs["input_ids"].size()[0],1), last_type)), 1 )
             next_token_logits = outputs[0][:, -1, :]
 
             # if model has past, then set the past variable to speed up decoding
@@ -1081,7 +1110,7 @@ class Conv1D(nn.Module):
         """ Conv1D layer as defined by Radford et al. for OpenAI GPT (and also used in GPT-2)
             Basically works like a Linear layer but the weights are transposed
         """
-        super(Conv1D, self).__init__()
+        super().__init__()
         self.nf = nf
         w = torch.empty(nx, nf)
         nn.init.normal_(w, std=0.02)
@@ -1099,7 +1128,7 @@ class PoolerStartLogits(nn.Module):
     """ Compute SQuAD start_logits from sequence hidden states. """
 
     def __init__(self, config):
-        super(PoolerStartLogits, self).__init__()
+        super().__init__()
         self.dense = nn.Linear(config.hidden_size, 1)
 
     def forward(self, hidden_states, p_mask=None):
@@ -1124,7 +1153,7 @@ class PoolerEndLogits(nn.Module):
     """
 
     def __init__(self, config):
-        super(PoolerEndLogits, self).__init__()
+        super().__init__()
         self.dense_0 = nn.Linear(config.hidden_size * 2, config.hidden_size)
         self.activation = nn.Tanh()
         self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
@@ -1170,7 +1199,7 @@ class PoolerAnswerClass(nn.Module):
     """ Compute SQuAD 2.0 answer class from classification and start tokens hidden states. """
 
     def __init__(self, config):
-        super(PoolerAnswerClass, self).__init__()
+        super().__init__()
         self.dense_0 = nn.Linear(config.hidden_size * 2, config.hidden_size)
         self.activation = nn.Tanh()
         self.dense_1 = nn.Linear(config.hidden_size, 1, bias=False)
@@ -1255,7 +1284,7 @@ class SQuADHead(nn.Module):
     """
 
     def __init__(self, config):
-        super(SQuADHead, self).__init__()
+        super().__init__()
         self.start_n_top = config.start_n_top
         self.end_n_top = config.end_n_top
 
@@ -1347,7 +1376,7 @@ class SequenceSummary(nn.Module):
     """
 
     def __init__(self, config):
-        super(SequenceSummary, self).__init__()
+        super().__init__()
 
         self.summary_type = config.summary_type if hasattr(config, "summary_type") else "last"
         if self.summary_type == "attn":

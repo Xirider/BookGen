@@ -17,7 +17,6 @@ cachedir = "cache"
 memory = Memory(cachedir, verbose=10)
 
 
-@memory.cache
 def get_text_paths(datadir, shuffle = False):
 
     files = []
@@ -39,7 +38,6 @@ def get_text_paths(datadir, shuffle = False):
 
     return files
 
-# @memory.cache
 def parse_fanfiction(files):
     books = []
     # files = files[0:2]

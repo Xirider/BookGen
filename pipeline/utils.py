@@ -16,9 +16,12 @@ def get_tokenizer(tokenizer_name = "gpt2-large"):
     return tokenizer
 
 
-def save_datasets(datasets, name="datasets"):
+def save_datasets(datasets, name="datasets", subfoldername = ""):
     start = Path("pipeline/data/")
     name = name + ".json"
+    start = start / subfoldername
+    if not os.path.exists(start):
+        os.makedirs(start)
     name = start / name
     with open(name, "w") as fp:
         json.dump(datasets, fp)
@@ -53,8 +56,11 @@ def split_examples(datasets, ratio):
 def get_shard(full_list, shard_index, total_shards):
 
     total_len = len(full_list)
-
+    print(full_list)
+    print(total_len)
     shard_size = total_len // total_shards
+    print(f"getting shard {shard_index * shard_size} to {(shard_index + 1)*shard_size}")
+
 
     return full_list[shard_index * shard_size:(shard_index + 1)*shard_size]
 
