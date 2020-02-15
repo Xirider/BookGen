@@ -209,7 +209,7 @@ def mask_tokens(inputs, tokenizer, args):
     return inputs, labels
 
 
-def train(args,  model, tokenizer, blue, rouge):
+def train(args,  model, tokenizer, bleu, rouge):
     """ Train the model """
     if args.local_rank in [-1, 0]:
         tb_writer = SummaryWriter()
