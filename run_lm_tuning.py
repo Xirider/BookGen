@@ -229,6 +229,8 @@ def train(args,  model, tokenizer, bleu, rouge):
 
     t_total = t_total * train_shard_count
 
+
+    real_global_steps = 0
     
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ["bias", "LayerNorm.weight"]
@@ -326,6 +328,20 @@ def train(args,  model, tokenizer, bleu, rouge):
                 continue
             
             inputs, token_type_ids, labels = batch
+
+
+            if real_global_steps < 10:
+                print(f"GLOBAL STEP {real_global_steps}")
+                print("inputs batch 0 for training")
+                print(tokenizer.decode(inputs[0]))
+                print("token_type_ids batch 0 for training")
+                print(tokenizer.decode(token_type_ids[0]))
+                print("labels batch 0 for training")
+                print(labels[0])
+                real_global_steps += 1
+
+
+
 
             inputs = inputs.to(args.device)
             token_type_ids = token_type_ids.to(args.device)
