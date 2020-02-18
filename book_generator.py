@@ -247,7 +247,6 @@ def create_gen_schema(schema, tokenizer, max_input_len, device):
     max_seq_len = max_input_len
     if len(input_ids) > max_seq_len:
         input_ids = input_ids[:max_seq_len]
-        labels = labels[:max_seq_len]
         token_type_ids = token_type_ids[:max_seq_len]
     
 
