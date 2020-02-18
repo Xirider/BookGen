@@ -468,6 +468,8 @@ def evaluate(args, model, tokenizer, bleu, rouge, prefix="", whole_book=False):
             rouge_score_total += rouge_score
 
         nb_eval_steps += 1
+        if nb_eval_steps % 50 == 0:
+            break
 
     eval_loss = eval_loss / nb_eval_steps
     perplexity = torch.exp(torch.tensor(eval_loss)).item()
