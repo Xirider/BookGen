@@ -30,6 +30,7 @@ import re
 import shutil
 import json
 from pathlib import Path
+import time
 
 import numpy as np
 import torch
@@ -299,7 +300,7 @@ def train(args,  model, tokenizer, bleu, rouge):
         logger.info("  Continuing training from epoch %d", epochs_trained)
         logger.info("  Continuing training from global step %d", global_step)
         logger.info("  Will skip the first %d steps in the first epoch", steps_trained_in_current_epoch)
-
+        steps_trained_in_current_epoch = global_step
     tr_loss, logging_loss = 0.0, 0.0
 
     model_to_resize = model.module if hasattr(model, "module") else model  # Take care of distributed/parallel training
@@ -317,20 +318,23 @@ def train(args,  model, tokenizer, bleu, rouge):
                 train_dataset = load_and_cache_examples(args, tokenizer, evaluate=False, epoche=epoche )
                 train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
                 train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
-
+                print(f"loading next dataset for epoch {cur_epoch}")
+                time.sleep(2)
 
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
 
             # Skip past any already trained steps if resuming training
             if steps_trained_in_current_epoch > 0:
+                batch = 0
+                print(f"skipped step {step}")
                 steps_trained_in_current_epoch -= 1
                 continue
             
             inputs, token_type_ids, labels = batch
 
 
-            if real_global_steps < 10:
+            if real_global_steps < 3:
                 print(f"GLOBAL STEP {real_global_steps}")
                 print("inputs batch 0 for training")
                 print(tokenizer.decode(inputs[0]))
