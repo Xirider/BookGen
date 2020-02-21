@@ -329,6 +329,9 @@ def train(args,  model, tokenizer, bleu, rouge):
                 batch = 0
                 print(f"skipped step {step}")
                 steps_trained_in_current_epoch -= 1
+                if steps_trained_in_current_epoch == 0:
+                    print("reached checkpoint position, waiting for gpu memory")
+                    time.sleep(10)
                 continue
             
             inputs, token_type_ids, labels = batch
