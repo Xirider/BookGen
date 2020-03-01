@@ -460,21 +460,21 @@ class GPT2Model(GPT2PreTrainedModel):
         else:
             head_mask = [None] * self.config.n_layer
 
-        if inputs_embeds is None:
-            inputs_embeds = self.wte(input_ids)
-            # inputs_embeds = torch.utils.checkpoint.checkpoint(self.wte, input_ids)
 
         position_embeds = self.wpe(position_ids)
         # position_embeds = torch.utils.checkpoint.checkpoint(self.wpe, position_ids)
+        if inputs_embeds is None:
+            # inputs_embeds = self.wte(input_ids)
+            inputs_embeds = torch.utils.checkpoint.checkpoint(self.wte, input_ids)
         if token_type_ids is not None:
-            token_type_embeds = self.wte(token_type_ids)
-            # token_type_embeds = torch.utils.checkpoint.checkpoint(self.wte, token_type_ids)
+            # token_type_embeds = self.wte(token_type_ids)
+            token_type_embeds = torch.utils.checkpoint.checkpoint(self.wte, token_type_ids)
 
         else:
             token_type_embeds = 0
         hidden_states = inputs_embeds + position_embeds + token_type_embeds
-        hidden_states = self.drop(hidden_states)
-        # hidden_states = torch.utils.checkpoint.checkpoint(self.drop, hidden_states)
+        # hidden_states = self.drop(hidden_states)
+        hidden_states = torch.utils.checkpoint.checkpoint(self.drop, hidden_states)
 
 
         output_shape = input_shape + (hidden_states.size(-1),)
