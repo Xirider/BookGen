@@ -337,15 +337,16 @@ def train(args,  model, tokenizer, bleu, rouge):
             inputs, token_type_ids, labels = batch
 
 
-            if real_global_steps < 3:
-                print(f"GLOBAL STEP {real_global_steps}")
-                print("inputs batch 0 for training")
-                print(tokenizer.decode(inputs[0]))
-                print("token_type_ids batch 0 for training")
-                print(tokenizer.decode(token_type_ids[0]))
-                print("labels batch 0 for training")
-                print(labels[0])
-                real_global_steps += 1
+            # if real_global_steps < 10:
+            #     print(f"GLOBAL STEP {real_global_steps}")
+            #     print("inputs batch 0 for training")
+            #     print(tokenizer.decode(inputs[0]))
+            #     print("token_type_ids batch 0 for training")
+            #     print(tokenizer.decode(token_type_ids[0]))
+            #     print("labels batch 0 for training")
+            #     print(labels[0])
+            #     real_global_steps += 1
+            #     print("no gradient params:")
 
 
 
@@ -375,8 +376,17 @@ def train(args,  model, tokenizer, bleu, rouge):
                     torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
                 else:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                if real_global_steps < 20:
+                    for name,param in model.named_parameters():
+                        if param.grad is None:
+                            print(name)
                 optimizer.step()
                 scheduler.step()  # Update learning rate schedule
+                if real_global_steps < 20:
+                    for name,param in model.named_parameters():
+                        if param.grad is None:
+                            print(name)
+
                 model.zero_grad()
                 global_step += 1
 

@@ -24,8 +24,6 @@ import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 
-import torch.utils.checkpoint
-
 from transformers.configuration_gpt2 import GPT2Config
 from transformers.file_utils import add_start_docstrings
 from modeling_utils import Conv1D, PreTrainedModel, SequenceSummary, prune_conv1d_layer
@@ -462,20 +460,13 @@ class GPT2Model(GPT2PreTrainedModel):
 
         if inputs_embeds is None:
             inputs_embeds = self.wte(input_ids)
-            # inputs_embeds = torch.utils.checkpoint.checkpoint(self.wte, input_ids)
-
         position_embeds = self.wpe(position_ids)
-        # position_embeds = torch.utils.checkpoint.checkpoint(self.wpe, position_ids)
         if token_type_ids is not None:
             token_type_embeds = self.wte(token_type_ids)
-            # token_type_embeds = torch.utils.checkpoint.checkpoint(self.wte, token_type_ids)
-
         else:
             token_type_embeds = 0
         hidden_states = inputs_embeds + position_embeds + token_type_embeds
         hidden_states = self.drop(hidden_states)
-        # hidden_states = torch.utils.checkpoint.checkpoint(self.drop, hidden_states)
-
 
         output_shape = input_shape + (hidden_states.size(-1),)
 
@@ -486,10 +477,9 @@ class GPT2Model(GPT2PreTrainedModel):
             if self.output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states.view(*output_shape),)
 
-            # outputs = block(
-            #     hidden_states, layer_past=layer_past, attention_mask=attention_mask, head_mask=head_mask[i]
-            # )
-            outputs = torch.utils.checkpoint.checkpoint(block, hidden_states, layer_past, attention_mask, head_mask[i])
+            outputs = block(
+                hidden_states, layer_past=layer_past, attention_mask=attention_mask, head_mask=head_mask[i]
+            )
 
             hidden_states = outputs[0]
             if self.output_past:
@@ -498,8 +488,7 @@ class GPT2Model(GPT2PreTrainedModel):
             if self.output_attentions:
                 all_attentions = all_attentions + (outputs[2 if self.output_past else 1],)
 
-        # hidden_states = self.ln_f(hidden_states)
-        hidden_states = torch.utils.checkpoint.checkpoint(self.ln_f, hidden_states)
+        hidden_states = self.ln_f(hidden_states)
 
         hidden_states = hidden_states.view(*output_shape)
         # Add last hidden state
