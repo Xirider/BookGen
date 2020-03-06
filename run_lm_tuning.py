@@ -43,6 +43,8 @@ from book_generator import generate_text, ids2text, create_prompt, compare_text,
 from sumeval.metrics.rouge import RougeCalculator
 from sumeval.metrics.bleu import BLEUCalculator
 
+from adafactor import Adafactor
+
 from transformers import (
     WEIGHTS_NAME,
     AdamW,
@@ -242,10 +244,14 @@ def train(args,  model, tokenizer, bleu, rouge):
         },
         {"params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], "weight_decay": 0.0},
     ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=t_total
-    )
+
+    optimizer = Adafactor(optimizer_grouped_parameters)
+
+
+    # optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
+    # scheduler = get_linear_schedule_with_warmup(
+    #     optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=t_total
+    # )
 
     # Check if saved optimizer or scheduler states exist
     if os.path.isfile(os.path.join(args.model_name_or_path, "optimizer.pt")) and os.path.isfile(
@@ -253,7 +259,7 @@ def train(args,  model, tokenizer, bleu, rouge):
     ):
         # Load in optimizer and scheduler states
         optimizer.load_state_dict(torch.load(os.path.join(args.model_name_or_path, "optimizer.pt")))
-        scheduler.load_state_dict(torch.load(os.path.join(args.model_name_or_path, "scheduler.pt")))
+        # scheduler.load_state_dict(torch.load(os.path.join(args.model_name_or_path, "scheduler.pt")))
 
     if args.fp16:
         try:
@@ -381,7 +387,7 @@ def train(args,  model, tokenizer, bleu, rouge):
                         if param.grad is None:
                             print(name)
                 optimizer.step()
-                scheduler.step()  # Update learning rate schedule
+                # scheduler.step()  # Update learning rate schedule
                 if real_global_steps < 20:
                     for name,param in model.named_parameters():
                         if param.grad is None:
@@ -398,7 +404,7 @@ def train(args,  model, tokenizer, bleu, rouge):
                         results = evaluate(args, model, tokenizer, bleu, rouge)
                         for key, value in results.items():
                             tb_writer.add_scalar("eval_{}".format(key), value, global_step)
-                    tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
+                    # tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar("loss", (tr_loss - logging_loss) / args.logging_steps, global_step)
                     logging_loss = tr_loss
 
@@ -420,7 +426,7 @@ def train(args,  model, tokenizer, bleu, rouge):
                     _rotate_checkpoints(args, checkpoint_prefix)
 
                     torch.save(optimizer.state_dict(), os.path.join(output_dir, "optimizer.pt"))
-                    torch.save(scheduler.state_dict(), os.path.join(output_dir, "scheduler.pt"))
+                    # torch.save(scheduler.state_dict(), os.path.join(output_dir, "scheduler.pt"))
                     logger.info("Saving optimizer and scheduler states to %s", output_dir)
 
             if args.max_steps > 0 and global_step > args.max_steps:

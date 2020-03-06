@@ -245,6 +245,29 @@ class Block(nn.Module):
         outputs = (x,) + output_attn[1:]
         return outputs  # x, (present), (attentions)
 
+class Dummy(nn.Module):
+    def __init__(self):
+        super(Dummy, self).__init__()
+
+
+    def forward(self, position_ids, input_ids, token_type_ids, dummy_tensor):
+
+        
+        position_embeds = self.wpe(position_ids)
+        # # position_embeds = torch.utils.checkpoint.checkpoint(self.wpe, position_ids)
+        inputs_embeds = self.wte(input_ids)
+        #     # inputs_embeds = torch.utils.checkpoint.checkpoint(self.wte, input_ids)
+        # if token_type_ids is not None:
+        token_type_embeds = self.wte(token_type_ids)
+        #     # token_type_embeds = torch.utils.checkpoint.checkpoint(self.wte, token_type_ids)
+
+        # else:
+        #     token_type_embeds = 0
+        hidden_states = inputs_embeds + position_embeds + token_type_embeds
+
+        return hidden_states
+        
+
 
 class GPT2PreTrainedModel(PreTrainedModel):
     """ An abstract class to handle weights initialization and
@@ -367,13 +390,13 @@ class GPT2Model(GPT2PreTrainedModel):
         self.output_hidden_states = config.output_hidden_states
         self.output_attentions = config.output_attentions
         self.output_past = config.output_past
-
         self.wte = nn.Embedding(config.vocab_size, config.n_embd)
         self.wpe = nn.Embedding(config.n_positions, config.n_embd)
+        self.dummy_tensor = torch.ones(1, dtype=next(self.parameters()).dtype, requires_grad=True)
         self.drop = nn.Dropout(config.embd_pdrop)
         self.h = nn.ModuleList([Block(config.n_ctx, config, scale=True) for _ in range(config.n_layer)])
         self.ln_f = nn.LayerNorm(config.n_embd, eps=config.layer_norm_epsilon)
-
+        self.dummy = Dummy()
         self.init_weights()
 
     def get_input_embeddings(self):
@@ -461,18 +484,22 @@ class GPT2Model(GPT2PreTrainedModel):
             head_mask = [None] * self.config.n_layer
 
 
-        position_embeds = self.wpe(position_ids)
-        # position_embeds = torch.utils.checkpoint.checkpoint(self.wpe, position_ids)
-        if inputs_embeds is None:
-            # inputs_embeds = self.wte(input_ids)
-            inputs_embeds = torch.utils.checkpoint.checkpoint(self.wte, input_ids)
-        if token_type_ids is not None:
-            # token_type_embeds = self.wte(token_type_ids)
-            token_type_embeds = torch.utils.checkpoint.checkpoint(self.wte, token_type_ids)
+        # position_embeds = self.wpe(position_ids)
+        # # position_embeds = torch.utils.checkpoint.checkpoint(self.wpe, position_ids)
+        # if inputs_embeds is None:
+        #     inputs_embeds = self.wte(input_ids)
+        #     # inputs_embeds = torch.utils.checkpoint.checkpoint(self.wte, input_ids)
+        # if token_type_ids is not None:
+        #     token_type_embeds = self.wte(token_type_ids)
+        #     # token_type_embeds = torch.utils.checkpoint.checkpoint(self.wte, token_type_ids)
 
-        else:
-            token_type_embeds = 0
-        hidden_states = inputs_embeds + position_embeds + token_type_embeds
+        # else:
+        #     token_type_embeds = 0
+        # hidden_states = inputs_embeds + position_embeds + token_type_embeds
+        self.dummy.wte = self.wte
+        self.dummy.wpe = self.wpe
+        hidden_states = torch.utils.checkpoint.checkpoint(self.dummy, position_ids, input_ids, token_type_ids, self.dummy_tensor)
+
         # hidden_states = self.drop(hidden_states)
         hidden_states = torch.utils.checkpoint.checkpoint(self.drop, hidden_states)
 
