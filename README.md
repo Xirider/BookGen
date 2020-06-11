@@ -12,7 +12,7 @@ This is how the general approach works:
 5. summarization is repeated until only one summary is left for the book (for a maximum of 10 levels of summaries)
 6. a large GPT-2 language model is then finetuned to create text based on the summaries. For this the text is joined with summaries in this format: 
 
-  "SUMMARY1 DELIMITER TEXT1 DELIMITER" and "SUMMARYLEVEL2 DELIMITER SUMMARYLEVEL1_0 DELIMTER SUMMARYLEVEL1_1 DELIMITER"
+    "SUMMARY1 DELIMITER TEXT1 DELIMITER" and "SUMMARYLEVEL2 DELIMITER SUMMARYLEVEL1_0 DELIMTER SUMMARYLEVEL1_1 DELIMITER"
 
 7. for inference the model is prompted with a single summary to generate lower level summaries. this are then fed into the model repeatedly until the lowest level is reached, at which point the model generates the text of the book
 
@@ -28,4 +28,4 @@ This is how the general approach works:
 
 5. you can prompt the model by running the generate_book function:
 
-  generate_book(model, tokenizer, high_level_prompt= "This is a funny fantasy story about a lama that works as a wizard detective", max_chapters= 20, start_level=5, device, mid_start_level=5, max_input_len = 300, max_seq_len=400, sum_factor=3, prev_tokens_len=150):
+    generate_book(model, tokenizer, high_level_prompt= "This is a funny fantasy story about a lama that works as a wizard detective",       max_chapters= 20, start_level=5, device, mid_start_level=5, max_input_len = 300, max_seq_len=400, sum_factor=3,                     prev_tokens_len=150):
